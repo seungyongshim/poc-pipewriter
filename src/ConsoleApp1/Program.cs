@@ -1,22 +1,20 @@
-
-using System;
+using System.Buffers;
 using System.IO.Pipelines;
+using System.Net.Http.Json;
 using System.Text;
-using System.Text.Unicode;
 using Proto;
 using Proto.Timers;
 
-using var stream = new MemoryStream();
-
 var pipe = new Pipe();
-//var reader = PipeReader.Create(stream);
-//var writer = PipeWriter.Create(stream);
 var reader = pipe.Reader;
 var writer = pipe.Writer;
+var http = new HttpClient()
+{
+    BaseAddress = new Uri("https://httpbin.org/")
+};
 
 var system = new ActorSystem();
 var root = system.Root;
-
 
 var actor = root.Spawn(Props.FromFunc(ctx => ctx.Message switch
 {
@@ -28,7 +26,13 @@ var actor = root.Spawn(Props.FromFunc(ctx => ctx.Message switch
     Print => Task.Run(async () =>
     {
         var read = await reader.ReadAsync();
-        Console.WriteLine(Encoding.UTF8.GetString(read.Buffer));
+
+        var ret = await http.PostAsync("post", new ByteArrayContent(read.Buffer.ToArray())
+        {
+            
+        });
+
+        Console.WriteLine(ret);
         reader.AdvanceTo(read.Buffer.Start, read.Buffer.End);
     }),
     _ => Task.CompletedTask
