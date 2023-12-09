@@ -2,6 +2,7 @@ using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using Proto;
 using Proto.Timers;
 
@@ -26,13 +27,13 @@ var actor = root.Spawn(Props.FromFunc(ctx => ctx.Message switch
     Print => Task.Run(async () =>
     {
         var read = await reader.ReadAsync();
+        using var request = new ByteArrayContent(read.Buffer.ToArray());
 
-        var ret = await http.PostAsync("post", new ByteArrayContent(read.Buffer.ToArray())
-        {
-            
-        });
+        request.Headers.ContentType = new("application/x-ndjson");
 
-        Console.WriteLine(ret);
+        var ret = await http.PostAsync("post", request);
+
+        Console.WriteLine(await ret.Content.ReadAsStringAsync());
         reader.AdvanceTo(read.Buffer.Start, read.Buffer.End);
     }),
     _ => Task.CompletedTask
@@ -42,9 +43,11 @@ var actor = root.Spawn(Props.FromFunc(ctx => ctx.Message switch
 var i = 0;
 while (true)
 {
-    root.Send(actor, $"{i}");
-    i++;
+    root.Send(actor, JsonSerializer.Serialize(new
+    {
+        number = i++
+    }));
     await Task.Delay(1);
 }
 
-record Print;
+internal record Print;
