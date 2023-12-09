@@ -32,6 +32,7 @@ internal class NxLogActor(PipeReader reader, PipeWriter writer, HttpClient http)
     {
         var read = await reader.ReadAsync();
         var buffer = read.Buffer;
+
         using var request = new ByteArrayContent(buffer.ToArray());
 
         request.Headers.ContentType = new("application/x-ndjson");
