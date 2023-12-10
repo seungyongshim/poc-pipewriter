@@ -25,6 +25,7 @@ internal class NxLogActor(PipeReader reader, PipeWriter writer, HttpClient http)
             TotalSize += jsonLine.Length;
         }),
         ReceiveTimeout => ReadAsync(),
+        Stop => ReadAsync(),
         _ => Task.CompletedTask
     };
 
